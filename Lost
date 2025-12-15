@@ -8,10 +8,11 @@ internal class Book //base class
 {
     public string title { get; set; }
     public string genre { get; set; }
-    private int publicationyear; //validation
+    private int publicationyear; //نتاكد من البيانات الل دخلها المستخدم صحيحه ولا لا => validation  
      private string ISBN; //validation
       private int volumeNum; //validation
       private Author[] AuthorsForBook; // many to many  المصفوفه ال بتخزن كل المؤلفين الل شاركو في الكتاب
+   
     //   Constructor بدون parameters و constructor آخر مبسط
     public Book()  //بيمنع nullrefrenceexception
     {
@@ -84,7 +85,7 @@ internal class Book //base class
     public override string ToString() // بتحدد شكل الطباعه لما تعمل cw book 
     { return $"The Book Title={title} \nBook Genre={genre}\nPublication year={publicationyear} \nISBN for Book={ISBN} \nVolume of the Book={volumeNum}"; }
 
-public bool AddAuthorsToBook(Author author)
+public bool AddAuthorsToBook(Author author) // الداله دي مبدئيا بترجعلي ب true or false 
 {
     // التأكد أن الكاتب مش موجود بالفعل
     foreach (var a in AuthorsForBook)
@@ -109,6 +110,10 @@ public Author[] GetAuthors()
 {
     return AuthorsForBook;
 }
+public bool IsSameBook(string otherTitle)
+{
+    return title.Equals(otherTitle, StringComparison.OrdinalIgnoreCase);
+}
 
 }
 
@@ -125,7 +130,7 @@ internal class FictionBook : Book
     }
     
     //  Constructor إضافي مع parameters
-    public FictionBook(string title, string author, int year, string isbn, int volume) 
+    public FictionBook(string title, int year, string isbn, int volume) 
         : base(title, year, isbn, volume, "Fiction")
     {
         Characters = new string[0];
@@ -169,7 +174,7 @@ internal class NonFictionBook : Book
     }
     
     //  Constructor إضافي مع parameters
-    public NonFictionBook(string title, string author, int year, string isbn, int volume) 
+    public NonFictionBook(string title, int year, string isbn, int volume) 
         : base(title, year, isbn, volume, "NonFiction")
     {
         FeildStudy = "General";
@@ -213,10 +218,7 @@ internal class Author
         this.birthdate = birthdate;
         this.BooksWritten = books;
     }
-
-    private string Name;
-    private string Birthdate;
-    Book[] BooksWritten;
+    Book[] BooksWritten; // الطرف التاني من ال many to many
     
     public string name { get; set; }
     public string birthdate { get; set; }
@@ -230,8 +232,18 @@ internal class Author
         return $"Author Name is: {name} \nAuthor Birthdate: {birthdate}";
     }
     
-   public void AddBook(Book b) //ربط المؤلف بالكتاب 
+ public void AddBook(Book b)
 {
+    //  نتأكد إن الكتاب مش موجود قبل كده
+    for (int i = 0; i < BooksWritten.Length; i++)
+    {
+        if (BooksWritten[i] == b)
+        {
+            return; // الكتاب موجود بالفعل → ما نضيفش تاني
+        }
+    }
+
+    //  لو مش موجود، نعمل Array جديدة ونضيفه
     Book[] newArray = new Book[BooksWritten.Length + 1];
 
     for (int i = 0; i < BooksWritten.Length; i++)
@@ -243,6 +255,8 @@ internal class Author
 
     BooksWritten = newArray;
 }
+
+
 }
 
 internal class PoetAuthor : Author
@@ -360,6 +374,8 @@ internal class Library
     return null;
 }
 
+
+
     Book[] books; //array 
     private int CurrentBookCount = 0;
     Author[] Authors; //array 
@@ -387,8 +403,21 @@ internal class Library
 
         if (CurrentBookCount < books.Length)
         {
-            Console.WriteLine("please enter the Book title");
-            book.title = ReadNonEmptyString();
+           Console.WriteLine("please enter the Book title");
+        string enteredTitle = ReadNonEmptyString();
+
+//  استغلال check بتاع Book
+            for (int i = 0; i < CurrentBookCount; i++)
+        {
+            if (books[i].IsSameBook(enteredTitle))
+        {
+        Console.WriteLine("This book already exists in the library!");
+        return; // نخرج ومندخلش الكتاب
+            }
+        }
+
+book.title = enteredTitle;
+
             
             bool checkpublicationyear = false;
             while (!checkpublicationyear)
@@ -464,14 +493,14 @@ internal class Library
             if (bookType == 'F')
             {
                 // إنشاء الكائن الصحيح (FictionBook) وتمرير البيانات الأساسية إليه
-                FictionBook newFictionBook = new FictionBook(tempTitle, null, tempYear, tempISBN, tempVolume); 
+                FictionBook newFictionBook = new FictionBook(tempTitle, tempYear, tempISBN, tempVolume); 
                 AddFictionBook(newFictionBook); // إضافة التفاصيل الخاصة بالخيال
                 book = newFictionBook; // تعيين الكائن الجديد للمتغير book
             }
             else if (bookType == 'N')
             {
                 // إنشاء الكائن الصحيح (NonFictionBook) وتمرير البيانات الأساسية إليه
-                NonFictionBook newNonFictionBook = new NonFictionBook(tempTitle, null, tempYear, tempISBN, tempVolume); 
+                NonFictionBook newNonFictionBook = new NonFictionBook(tempTitle, tempYear, tempISBN, tempVolume); 
                 AddNonFictionBook(newNonFictionBook); // إضافة التفاصيل الخاصة بغير الخيال
                 book = newNonFictionBook; // تعيين الكائن الجديد للمتغير book
             }
@@ -552,7 +581,7 @@ internal class Library
     }
 }
 
-//  إضافة الكتاب للمكتبة
+// ✅ إضافة الكتاب للمكتبة
             books[CurrentBookCount] = book;
             CurrentBookCount++; 
         }
@@ -629,7 +658,8 @@ internal class Library
 
     for (int i = 0; i < CurrentBookCount; i++)
     {
-        if (books[i].title == searchbookname)
+        if (books[i].title.Equals(searchbookname, StringComparison.OrdinalIgnoreCase))
+
         {
             foundBook = books[i];
             Console.WriteLine(foundBook); // print ToString
@@ -715,7 +745,7 @@ internal class Library
     // البحث عن الكاتب
     for (int i = 0; i < CurrentAuthorCount; i++)
     {
-        if (Authors[i].name == authorsearch)
+        if (Authors[i].name.Equals(authorsearch, StringComparison.OrdinalIgnoreCase))
         {
             foundAuthor = Authors[i];
             break;
