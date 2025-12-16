@@ -1,827 +1,884 @@
 using System;
-using System.Runtime.Intrinsics.Arm;
-using System.Security.AccessControl;
-using System.Security.Cryptography.X509Certificates;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-
-internal class Book //base class
+namespace projecttt
 {
-    public string title { get; set; }
-    public string genre { get; set; }
-    private int publicationyear; //نتاكد من البيانات الل دخلها المستخدم صحيحه ولا لا => validation  
-     private string ISBN; //validation
-      private int volumeNum; //validation
-      private Author[] AuthorsForBook; // many to many  المصفوفه ال بتخزن كل المؤلفين الل شاركو في الكتاب
-   
-    //   Constructor بدون parameters و constructor آخر مبسط
-    public Book()  //بيمنع nullrefrenceexception
+    internal class LibraryManagementSystem
     {
-        AuthorsForBook=new Author[0];
-    }
-    
-    // public Book(string title, string author) 
-    // {
-    //     this.title = title;
-    //     this.author = author;
-    // }
-    
-   public Book(string title, int year, string isbn, int volume, string genre)
-{
-    this.title = title;
-   
-    this._publicationyear = year;
-    this._ISBN = isbn;
-    this._volumeNum = volume;
-    this.genre = genre;
-
-    // مهم جدًا عشان AddAuthorsToBook ما تعملش Error
-    AuthorsForBook = new Author[0];
-}
-
-    
-    public int _publicationyear
-    {
-        set
+        static void Main(string[] args)
         {
-            if (value <= 0 || value > 2025)
-            { throw new ArgumentException("incorrect year"); }
-            else
-            { publicationyear = value; }
-        }
-        get { return publicationyear; }
-    }
-   
-    public string _ISBN
-    {
-        set
-        {
-            if (publicationyear <= 2007 && value.Length == 10)
+            Library library = new Library();
+            string option;
+
+            while (true)
             {
-                ISBN = value;
-            }
-            else if (publicationyear > 2007 && value.Length == 13)
-            {
-                ISBN = value;
-            }
-            else
-            {
-                throw new ArgumentException("ISBN consists of 10 numbers(before 2007) or 13 numbers(after 2007)");
+                Console.WriteLine("\n=================================");
+                Console.WriteLine("WELCOME TO LOST LIBRARY");
+                Console.WriteLine("=================================");
+                Console.WriteLine("1. Add Books");
+                Console.WriteLine("2. Display a Book details");
+                Console.WriteLine("3. Search a Book by Author");
+                Console.WriteLine("4. Exit");
+                Console.Write("please select an option (1-4): ");
+
+                option = Console.ReadLine();
+
+                switch (option)
+                {
+                    case "1":
+                        Console.WriteLine("\n* Adding a Book *");
+                        library.addbook();
+                        Console.WriteLine("Book added successfully!\n");
+                        break;
+
+                    case "2":
+                        Console.WriteLine("\n* Display book details *");
+                        library.DisplayBookDetails();
+                        break;
+
+                    case "3":
+                        Console.WriteLine("\n* Search Book by Author *");
+                        library.SearchBookByAuthor();
+                        break;
+
+                    case "4":
+                        Console.WriteLine("Exiting the system. Goodbye!");
+                        return;
+
+                    default:
+                        Console.WriteLine("Invalid choice. Please try again.\n");
+                        break;
+                }
             }
         }
-        get { return ISBN; }
     }
-   
-    public int _volumeNum
+
+    internal class Library
     {
-        set
+        public static int checkinput()
         {
-            if (value <= 0 || value > 3000)
-            { throw new ArgumentException("incorrect or overloaded volume"); }
-            else
-            { volumeNum = value; }
+            while (true)
+            {
+                try
+                {
+                    string input = Console.ReadLine();
+                    if (!string.IsNullOrWhiteSpace(input))
+                    {
+                        int inp = int.Parse(input);
+                        return inp;
+                    }
+                }
+                catch
+                {
+                    Console.WriteLine("Invalid input. Please enter a valid number:");
+                }
+            }
         }
-        get { return volumeNum; }
-    }
-    public override string ToString() // بتحدد شكل الطباعه لما تعمل cw book 
-    { return $"The Book Title={title} \nBook Genre={genre}\nPublication year={publicationyear} \nISBN for Book={ISBN} \nVolume of the Book={volumeNum}"; }
 
-public bool AddAuthorsToBook(Author author) // الداله دي مبدئيا بترجعلي ب true or false 
-{
-    // التأكد أن الكاتب مش موجود بالفعل
-    foreach (var a in AuthorsForBook)
-    {
-        if (a.name.Equals(author.name, StringComparison.OrdinalIgnoreCase))
-            return false; // لو موجود، ما نضيفش تاني ونرجع false
-    }
-
-    Author[] newArray = new Author[AuthorsForBook.Length + 1];
-
-    for (int i = 0; i < AuthorsForBook.Length; i++)
-    {
-        newArray[i] = AuthorsForBook[i];
-    }
-
-    newArray[newArray.Length - 1] = author;
-
-    AuthorsForBook = newArray;
-    return true;
-}
-public Author[] GetAuthors()
-{
-    return AuthorsForBook;
-}
-public bool IsSameBook(string otherTitle)
-{
-    return title.Equals(otherTitle, StringComparison.OrdinalIgnoreCase);
-}
-
-}
-
-internal class FictionBook : Book
-{
-    private string[] Characters;
-    private string TargetAudience;
-    
-    //  Constructor يستدعي base constructor
-    public FictionBook() : base()
-    {
-        Characters = new string[0];
-        TargetAudience = "General";
-    }
-    
-    //  Constructor إضافي مع parameters
-    public FictionBook(string title, int year, string isbn, int volume) 
-        : base(title, year, isbn, volume, "Fiction")
-    {
-        Characters = new string[0];
-        TargetAudience = "General";
-    }
-
-    public string _TargetAudience
-    {
-        set
+        public static string ReadNonEmptyString()
         {
-            if (value == "young" || value == "adult" || value == "old")
-            { TargetAudience = value; }
-            else { throw new ArgumentException("unvalid option"); }
-        }
-        get { return TargetAudience; }
-    }
-
-    public void SetFictionCharacters(string[] characters)
-    {
-        this.Characters = characters;
-    }
-
-    public string[] GetFictionCharacters()
-    {
-        return Characters;
-    }
-}
-
-internal class NonFictionBook : Book
-{
-    private string FeildStudy;
-    private string[] References;
-    private int EditionNumber;
-
-    //  Constructor يستدعي base constructor
-    public NonFictionBook() : base()
-    {
-        FeildStudy = "General";
-        References = new string[0];
-        EditionNumber = 0;
-    }
-    
-    //  Constructor إضافي مع parameters
-    public NonFictionBook(string title, int year, string isbn, int volume) 
-        : base(title, year, isbn, volume, "NonFiction")
-    {
-        FeildStudy = "General";
-        References = new string[0];
-        EditionNumber = 0;
-    }
-
-    public string feildstudy { get { return FeildStudy; } set { FeildStudy = value; } }
-    public int editionnum { get { return EditionNumber; } set { EditionNumber = value; } }
-    
-    public void SetReferences(string[] references)
-    {
-        this.References = references;
-    }
-    
-    public string[] GetReferences()
-    {
-        return References;
-    }
-}
-
-internal class Author
-{
-    //  تم إضافة default constructor
-    public Author() 
-    {
-        BooksWritten = new Book[0]; //  تهيئة المصفوفة
-    }
-    
-    public Author(string name, string birthdate)
-    {
-        this.name = name;
-        this.birthdate = birthdate;
-        BooksWritten = new Book[0]; //  تهيئة المصفوفة
-    }
-
-    //  Constructor إضافي
-    public Author(string name, string birthdate, Book[] books)
-    {
-        this.name = name;
-        this.birthdate = birthdate;
-        this.BooksWritten = books;
-    }
-    Book[] BooksWritten; // الطرف التاني من ال many to many
-    
-    public string name { get; set; }
-    public string birthdate { get; set; }
-    public Book[] GetBooksWritten()
-    {
-        return BooksWritten;
-    }
-    
-    public override string ToString()
-    {
-        return $"Author Name is: {name} \nAuthor Birthdate: {birthdate}";
-    }
-    
- public void AddBook(Book b)
-{
-    //  نتأكد إن الكتاب مش موجود قبل كده
-    for (int i = 0; i < BooksWritten.Length; i++)
-    {
-        if (BooksWritten[i] == b)
-        {
-            return; // الكتاب موجود بالفعل → ما نضيفش تاني
-        }
-    }
-
-    //  لو مش موجود، نعمل Array جديدة ونضيفه
-    Book[] newArray = new Book[BooksWritten.Length + 1];
-
-    for (int i = 0; i < BooksWritten.Length; i++)
-    {
-        newArray[i] = BooksWritten[i];
-    }
-
-    newArray[newArray.Length - 1] = b;
-
-    BooksWritten = newArray;
-}
-
-
-}
-
-internal class PoetAuthor : Author
-{
-    private string[] Poems;
-    private string PoetryStyle;
-
-    //  Constructor يستدعي base constructor
-    // public PoetAuthor() : base()
-    // {
-    //     PoetryStyle = "General";
-    //     Poems = new string[0];
-    // }
-    //  Constructor إضافي مع parameters
-    public PoetAuthor(string name, string birthdate) : base(name, birthdate)
-    {
-        PoetryStyle = "General";
-        Poems = new string[0];
-    }
-
-    public void SetPoems(string[] poems)
-    {
-        this.Poems = poems;
-    }
-    
-    public string[] GetPoems()
-    {
-        return Poems;
-    }
-    
-    public string _PoetryStyle
-    {
-        set { PoetryStyle = value; }
-        get { return PoetryStyle; }
-    }
-}
-
-internal class Novelistauthor : Author
-{
-    private string[] Awards;
-    private string WritingStyle;
-
-    //  Constructor يستدعي base constructor
-    // public Novelistauthor() : base()
-    // {
-    //     WritingStyle = "General";
-    //     Awards = new string[0];
-    // }
-    
-    //  Constructor إضافي مع parameters
-    public Novelistauthor(string name, string birthdate) : base(name, birthdate)
-    {
-        WritingStyle = "General";
-        Awards = new string[0];
-    }
-
-    public void SetAwards(string[] awards)
-    {
-        this.Awards = awards;
-    }
-    
-    public string[] GetAwards()
-    {
-        return Awards;
-    }
-    
-    public string _WritingStyle
-    {
-        get { return WritingStyle; }
-        set { WritingStyle = value; }
-    }
-}
-
-internal class Library
-{
-    public static int checkinput()
-    {
-        while (true)
-        {
-            try
+            while (true)
             {
                 string input = Console.ReadLine();
                 if (!string.IsNullOrWhiteSpace(input))
                 {
-                    int inp = int.Parse(input);
-                    return inp;
+                    return input;
+                }
+                Console.WriteLine("Input cannot be empty. Please try again:");
+            }
+        }
+        ////////////////////////////////////////////
+        static string ReadStringWithoutNumbers()
+        {
+            string input;
+
+            while (true)
+            {
+                input = Console.ReadLine();
+
+                // شرط الرفض
+                if (string.IsNullOrWhiteSpace(input) || input.Any(char.IsDigit))
+                {
+                    Console.WriteLine("please enter a valid string ");
+                }
+                else
+                {
+                    return input;
                 }
             }
-            catch
+        }
+        static int ReadPositiveNumber()
+        {
+            int number;
+            string input;
+
+            while (true)
             {
-                Console.WriteLine("Invalid input. Please enter a valid number:");
+                input = Console.ReadLine();
+                // هل المدخل رقم؟
+                bool isNumber = int.TryParse(input, out number);
+
+                if (!isNumber)
+                {
+                    Console.WriteLine("please enter a Numer");
+                }
+                else if (number <= 0)
+                {
+                    Console.WriteLine("please enter a Positive Number");
+                }
+                else
+                {
+                    return number;
+                }
             }
         }
-    }
-    
-    public static string ReadNonEmptyString()
-    {
-        while (true)
+        /////////////////////////////////////////////////////////////////
+        private Author FindAuthorByName(string name)
         {
-            string input = Console.ReadLine();
-            if (!string.IsNullOrWhiteSpace(input))
+            for (int i = 0; i < CurrentAuthorCount; i++)
             {
-                return input;
+                if (Authors[i].name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                    return Authors[i];
             }
-            Console.WriteLine("Input cannot be empty. Please try again:");
+            return null;
         }
-    }
-    private Author FindAuthorByName(string name)
-{
-    for (int i = 0; i < CurrentAuthorCount; i++)
-    {
-        if (Authors[i].name.Equals(name,StringComparison.OrdinalIgnoreCase))
-            return Authors[i];
-    }
-    return null;
-}
 
 
 
-    Book[] books; //array 
-    private int CurrentBookCount = 0;
-    Author[] Authors; //array 
-    private int CurrentAuthorCount;
-    
-    //  تم نقل المتغيرات هنا لتكون على مستوى الكلاس بشكل صحيح
-    char bookType = ' ';
-    FictionBook currentFictionBook = null; //  تغيير الاسم ليكون أوضح
-    NonFictionBook currentNonFictionBook = null; //  تغيير الاسم ليكون أوضح
-    char authortype = ' ';
-    Novelistauthor currentNovelist = null; //  تغيير الاسم
-    PoetAuthor currentPoet = null; //  تغيير الاسم
-    int NumberOfAuthorForOneBook = 0;
+        Book[] books; //array 
+        private int CurrentBookCount = 0;
+        Author[] Authors; //array 
+        private int CurrentAuthorCount;
 
-    public Library()
-    {
-        books = new Book[100];
-        Authors = new Author[500];
-        CurrentAuthorCount = 0;
-    }
+        //  تم نقل المتغيرات هنا لتكون على مستوى الكلاس بشكل صحيح
+        char bookType = ' ';
+        FictionBook currentFictionBook = null; //  تغيير الاسم ليكون أوضح
+        NonFictionBook currentNonFictionBook = null; //  تغيير الاسم ليكون أوضح
+        char authortype = ' ';
+        Novelistauthor currentNovelist = null; //  تغيير الاسم
+        PoetAuthor currentPoet = null; //  تغيير الاسم
+        int NumberOfAuthorForOneBook = 0;
+        int tempYear;
 
-    public void addbook()
-    {
-        Book book = new Book(); // كائن مؤقت لجمع البيانات الأساسية
-
-        if (CurrentBookCount < books.Length)
+        public Library()
         {
-           Console.WriteLine("please enter the Book title");
-        string enteredTitle = ReadNonEmptyString();
+            books = new Book[100];
+            Authors = new Author[500];
+            CurrentAuthorCount = 0;
+        }
 
-//  استغلال check بتاع Book
+        public void addbook()
+        {
+            Book book = new Book(); // كائن مؤقت لجمع البيانات الأساسية
+
+            if (CurrentBookCount < books.Length)
+            {
+                Console.WriteLine("please enter the Book title");
+                string enteredTitle = ReadNonEmptyString();
+
+                //  استغلال check بتاع Book
+                for (int i = 0; i < CurrentBookCount; i++)
+                {
+                    if (books[i].IsSameBook(enteredTitle))
+                    {
+                        Console.WriteLine("This book already exists in the library!");
+                        return; // نخرج ومندخلش الكتاب
+                    }
+                }
+
+                book.title = enteredTitle;
+
+
+                bool checkpublicationyear = false;
+                while (!checkpublicationyear)
+                {
+                    Console.WriteLine("please enter the Book publication year");
+                    int year = checkinput();
+                    try
+                    {
+                        book._publicationyear = year;
+                        checkpublicationyear = true;
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine("please enter a valid year");
+                    }
+                }
+
+                bool checkisbn = false;
+                while (!checkisbn)
+                {
+                    Console.WriteLine("Enter the Book ISBN");
+                    string input = ReadNonEmptyString();
+                    try
+                    {
+                        book._ISBN = input;
+                        checkisbn = true;
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine("Please enter ISBN from 10 numbers(before 2007) or 13 numbers(after 2007)");
+                    }
+                }
+
+                bool checkvol = false;
+                while (!checkvol)
+                {
+                    Console.WriteLine("Please enter the Volume Number of the book:");
+                    int volumeNumber = checkinput();
+                    try
+                    {
+                        book._volumeNum = volumeNumber;
+                        checkvol = true;
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine("please enter a correct volume");
+                    }
+                }
+
+                while (true)
+                {
+                    Console.WriteLine("please enter the Book genre: 'F' for Fiction or 'N' for Non-Fiction:");
+                    string input = ReadNonEmptyString().ToUpper();
+                    bookType = input[0];
+
+                    if (bookType != 'F' && bookType != 'N')
+                    {
+                        Console.WriteLine("Invalid input, please enter 'F' or 'N'\n");
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                // حفظ البيانات الأساسية في متغيرات مؤقتة قبل إنشاء الكائن
+                string tempTitle = book.title;
+                 tempYear = book._publicationyear;
+                string tempISBN = book._ISBN;
+                int tempVolume = book._volumeNum;
+
+                if (bookType == 'F')
+                {
+                    // إنشاء الكائن الصحيح (FictionBook) وتمرير البيانات الأساسية إليه
+                    FictionBook newFictionBook = new FictionBook(tempTitle, tempYear, tempISBN, tempVolume);
+                    AddFictionBook(newFictionBook); // إضافة التفاصيل الخاصة بالخيال
+                    book = newFictionBook; // تعيين الكائن الجديد للمتغير book
+                }
+                else if (bookType == 'N')
+                {
+                    // إنشاء الكائن الصحيح (NonFictionBook) وتمرير البيانات الأساسية إليه
+                    NonFictionBook newNonFictionBook = new NonFictionBook(tempTitle, tempYear, tempISBN, tempVolume);
+                    AddNonFictionBook(newNonFictionBook); // إضافة التفاصيل الخاصة بغير الخيال
+                    book = newNonFictionBook; // تعيين الكائن الجديد للمتغير book
+                }
+
+                //  معلومات الكاتب
+                Console.WriteLine("How many authors does the book have?");
+                NumberOfAuthorForOneBook = ReadPositiveNumber();
+
+                for (int i = 0; i < NumberOfAuthorForOneBook; i++)
+                {
+                    bool authorAdded = false;
+                    while (!authorAdded)
+                    {
+                        Console.WriteLine($"Please enter the Author's Name ({i + 1} of {NumberOfAuthorForOneBook}):");
+                        string authorName = ReadStringWithoutNumbers();
+
+                        Author existingAuthor = FindAuthorByName(authorName);
+
+                        if (existingAuthor != null)
+                        {
+                            // الكاتب موجود بالفعل في المكتبة
+                            if (book.AddAuthorsToBook(existingAuthor))
+                            {
+                                // تم إضافته بنجاح للكتاب (لم يكن مكررًا)
+                                existingAuthor.AddBook(book);
+                                authorAdded = true;
+                            }
+                            else
+                            {
+                                // الكاتب مكرر في هذا الكتاب
+                                Console.WriteLine("This author already exists in this book. Please enter another author's name:");
+                                // لا نغير authorAdded، لذا ستستمر حلقة while
+                            }
+                        }
+                        else
+                        {
+                            int birthdate;
+                            // الكاتب جديد على المكتبة
+                            Console.WriteLine("Please enter the Author's Year of Birth :");
+                            while (true)
+                            {
+                                int date = ReadPositiveNumber();
+                                if (date > tempYear - 10)
+                                {
+                                    Console.WriteLine("please enter a correct year 'author cannot be born after publication year'");
+                                }
+                                else {birthdate = date;
+                                    break;   }
+                            }
+
+                            while (true)
+                                {
+                                    Console.WriteLine("Enter 'P' for Poem Author or 'N' for Novelist Author:");
+                                    authortype = ReadNonEmptyString().ToUpper()[0];
+
+                                    if (authortype == 'N')
+                                    {
+                                        currentNovelist = new Novelistauthor(authorName, birthdate);
+                                        Console.WriteLine("Enter Writing Style:");
+                                        currentNovelist._WritingStyle = ReadStringWithoutNumbers();
+
+                                        Authors[CurrentAuthorCount] = currentNovelist;
+                                        break;
+                                    }
+                                    else if (authortype == 'P')
+                                    {
+                                        currentPoet = new PoetAuthor(authorName, birthdate);
+                                        Console.WriteLine("Enter Poetry Style:");
+                                        currentPoet._PoetryStyle = ReadStringWithoutNumbers();
+
+                                        Authors[CurrentAuthorCount] = currentPoet;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Invalid input, try again.");
+                                    }
+                                }
+
+                            Author newAuthor = Authors[CurrentAuthorCount];
+
+                            // لا نحتاج للتحقق هنا لأن الكاتب جديد بالتأكيد
+                            book.AddAuthorsToBook(newAuthor);
+                            newAuthor.AddBook(book);
+                            CurrentAuthorCount++;
+                            authorAdded = true;
+                        }
+                    }
+                }
+
+                // ✅ إضافة الكتاب للمكتبة
+                books[CurrentBookCount] = book;
+                CurrentBookCount++;
+            }
+        }
+
+
+        public void AddFictionBook(FictionBook fictionBook)
+        {
+            Console.WriteLine("You selected Fiction book.\n");
+
+            bool target = false;
+            while (!target)
+            {
+                Console.WriteLine("Please enter the Target Audience of the book: \"young or adult or old\"");
+                string targetAudience = ReadNonEmptyString();
+                try
+                {
+                    fictionBook._TargetAudience = targetAudience.Trim();
+                    target = true;
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("please enter a valid option");
+                }
+            }
+
+            Console.WriteLine("How many main characters are in the book?");
+            int numberofcharacters = ReadPositiveNumber();
+            string[] characters = new string[numberofcharacters];
+
+            for (int i = 0; i < numberofcharacters; i++)
+            {
+                Console.WriteLine("Enter the name of character " + (i + 1) + ":");
+                characters[i] = ReadNonEmptyString();
+            }
+            fictionBook.SetFictionCharacters(characters);
+        }
+
+        public void AddNonFictionBook(NonFictionBook nonFictionBook)
+        {
+            Console.WriteLine("You selected NonFiction book.\n");
+
+            Console.WriteLine("Please enter the Field of Study:");
+            string field = ReadStringWithoutNumbers();
+            nonFictionBook.feildstudy = field;
+
+            Console.WriteLine("Please enter the Edition Number:");
+            int editionNumber = ReadPositiveNumber();
+            nonFictionBook.editionnum = editionNumber;
+
+            Console.WriteLine("How many references are in the book?");
+            int numberofreferences = ReadPositiveNumber();
+            string[] references = new string[numberofreferences];
+
+            for (int i = 0; i < numberofreferences; i++)
+            {
+                Console.WriteLine("Enter the name of reference " + (i + 1) + ":");
+                references[i] = ReadNonEmptyString();
+            }
+            nonFictionBook.SetReferences(references);
+        }
+        public void DisplayBookDetails()
+        {
+            if (CurrentBookCount == 0)
+            {
+                Console.WriteLine("there are no books in the Library\n");
+                return;
+            }
+
+            Console.WriteLine("enter the book Name");
+            string searchbookname = ReadNonEmptyString();
+
+            Book foundBook = null;
+
             for (int i = 0; i < CurrentBookCount; i++)
-        {
-            if (books[i].IsSameBook(enteredTitle))
-        {
-        Console.WriteLine("This book already exists in the library!");
-        return; // نخرج ومندخلش الكتاب
-            }
-        }
+            {
+                if (books[i].title.Equals(searchbookname, StringComparison.OrdinalIgnoreCase))
 
-book.title = enteredTitle;
-
-            
-            bool checkpublicationyear = false;
-            while (!checkpublicationyear)
-            {
-                Console.WriteLine("please enter the Book publication year");
-                int year = checkinput();
-                try
                 {
-                    book._publicationyear = year;
-                    checkpublicationyear = true;
-                }
-                catch (Exception) 
-                { 
-                    Console.WriteLine("please enter a valid year"); 
-                }
-            }
-            
-            bool checkisbn = false;
-            while (!checkisbn)
-            {
-                Console.WriteLine("Enter the Book ISBN");
-                string input = ReadNonEmptyString();
-                try
-                {
-                    book._ISBN = input;
-                    checkisbn = true;
-                }
-                catch (Exception)
-                { 
-                    Console.WriteLine("Please enter ISBN from 10 numbers(before 2007) or 13 numbers(after 2007)"); 
-                }
-            }
-            
-            bool checkvol = false;
-            while (!checkvol)
-            {
-                Console.WriteLine("Please enter the Volume Number of the book:");
-                int volumeNumber = checkinput();
-                try
-                {
-                    book._volumeNum = volumeNumber;
-                    checkvol = true;
-                }
-                catch (Exception)
-                { 
-                    Console.WriteLine("please enter a correct volume"); 
-                }
-            }
-
-            while (true)
-            {
-                Console.WriteLine("please enter the Book genre: 'F' for Fiction or 'N' for Non-Fiction:");
-                string input = ReadNonEmptyString().ToUpper();
-                bookType = input[0];
-                
-                if (bookType != 'F' && bookType != 'N')
-                {
-                    Console.WriteLine("Invalid input, please enter 'F' or 'N'\n");
-                    continue;
-                }
-                else
-                {
+                    foundBook = books[i];
+                    Console.WriteLine(foundBook); // print ToString
                     break;
                 }
             }
 
-            // حفظ البيانات الأساسية في متغيرات مؤقتة قبل إنشاء الكائن
-            string tempTitle = book.title;
-            int tempYear = book._publicationyear;
-            string tempISBN = book._ISBN;
-            int tempVolume = book._volumeNum;
-
-            if (bookType == 'F')
+            if (foundBook == null)
             {
-                // إنشاء الكائن الصحيح (FictionBook) وتمرير البيانات الأساسية إليه
-                FictionBook newFictionBook = new FictionBook(tempTitle, tempYear, tempISBN, tempVolume); 
-                AddFictionBook(newFictionBook); // إضافة التفاصيل الخاصة بالخيال
-                book = newFictionBook; // تعيين الكائن الجديد للمتغير book
-            }
-            else if (bookType == 'N')
-            {
-                // إنشاء الكائن الصحيح (NonFictionBook) وتمرير البيانات الأساسية إليه
-                NonFictionBook newNonFictionBook = new NonFictionBook(tempTitle, tempYear, tempISBN, tempVolume); 
-                AddNonFictionBook(newNonFictionBook); // إضافة التفاصيل الخاصة بغير الخيال
-                book = newNonFictionBook; // تعيين الكائن الجديد للمتغير book
+                Console.WriteLine("Unavailable Book");
+                return;
             }
 
-            //  معلومات الكاتب
-            Console.WriteLine("How many authors does the book have?");
-            NumberOfAuthorForOneBook = checkinput();
-            
-           for (int i = 0; i < NumberOfAuthorForOneBook; i++)
-{
-    bool authorAdded = false;
-    while (!authorAdded)
-    {
-        Console.WriteLine($"Please enter the Author's Name ({i + 1} of {NumberOfAuthorForOneBook}):");
-        string authorName = ReadNonEmptyString();
-
-        Author existingAuthor = FindAuthorByName(authorName);
-
-        if (existingAuthor != null)
-        {
-            // الكاتب موجود بالفعل في المكتبة
-            if (book.AddAuthorsToBook(existingAuthor))
+            // Print type-specific details using the actual foundBook instance
+            if (foundBook is FictionBook fBook)
             {
-                // تم إضافته بنجاح للكتاب (لم يكن مكررًا)
-                existingAuthor.AddBook(book);
-                authorAdded = true;
-            }
-            else
-            {
-                // الكاتب مكرر في هذا الكتاب
-                Console.WriteLine("This author already exists in this book. Please enter another author's name:");
-                // لا نغير authorAdded، لذا ستستمر حلقة while
-            }
-        }
-        else
-        {
-            // الكاتب جديد على المكتبة
-            Console.WriteLine("Please enter the Author's Birthdate (DD/MM/YYYY):");
-            string birthdate = ReadNonEmptyString();
-
-            while (true)
-            {
-                Console.WriteLine("Enter 'P' for Poem Author or 'N' for Novelist Author:");
-                authortype = ReadNonEmptyString().ToUpper()[0];
-
-                if (authortype == 'N')
+                Console.WriteLine("Target Audience: " + fBook._TargetAudience);
+                string[] characters = fBook.GetFictionCharacters();
+                for (int j = 0; j < characters.Length; j++)
                 {
-                    currentNovelist = new Novelistauthor(authorName, birthdate);
-                    Console.WriteLine("Enter Writing Style:");
-                    currentNovelist._WritingStyle = ReadNonEmptyString();
-
-                    Authors[CurrentAuthorCount] = currentNovelist;
-                    break;
+                    Console.WriteLine($"Character {j + 1}: {characters[j]}");
                 }
-                else if (authortype == 'P')
+            }
+            else if (foundBook is NonFictionBook nfBook)
+            {
+                Console.WriteLine("Field of Study: " + nfBook.feildstudy);
+                Console.WriteLine("Edition Number: " + nfBook.editionnum);
+                string[] references = nfBook.GetReferences();
+                for (int j = 0; j < references.Length; j++)
                 {
-                    currentPoet = new PoetAuthor(authorName, birthdate);
-                    Console.WriteLine("Enter Poetry Style:");
-                    currentPoet._PoetryStyle = ReadNonEmptyString();
-
-                    Authors[CurrentAuthorCount] = currentPoet;
-                    break;
-                }
-                else
-                {
-                    Console.WriteLine("Invalid input, try again.");
+                    Console.WriteLine($"Reference {j + 1}: {references[j]}");
                 }
             }
 
-            Author newAuthor = Authors[CurrentAuthorCount];
+            // Authors section
+            Console.WriteLine("\nAuthors Information:");
+            Author[] bookAuthors = foundBook.GetAuthors();
 
-            // لا نحتاج للتحقق هنا لأن الكاتب جديد بالتأكيد
-            book.AddAuthorsToBook(newAuthor);
-            newAuthor.AddBook(book);
-            CurrentAuthorCount++;
-            authorAdded = true;
-        }
-    }
-}
-
-// ✅ إضافة الكتاب للمكتبة
-            books[CurrentBookCount] = book;
-            CurrentBookCount++; 
-        }
-        }
-
-
-    public void AddFictionBook(FictionBook fictionBook)
-    {
-        Console.WriteLine("You selected Fiction book.\n");
-
-        bool target = false;
-        while (!target)
-        {
-            Console.WriteLine("Please enter the Target Audience of the book: \"young or adult or old\"");
-            string targetAudience = ReadNonEmptyString();
-            try
+            if (bookAuthors == null || bookAuthors.Length == 0)
             {
-                fictionBook._TargetAudience = targetAudience;
-                target = true;
+                Console.WriteLine("No authors registered for this book.");
+                return;
             }
-            catch (Exception)
-            { 
-                Console.WriteLine("please enter a valid option"); 
-            }
-        }
-        
-        Console.WriteLine("How many main characters are in the book?");
-        int numberofcharacters = checkinput();
-        string[] characters = new string[numberofcharacters];
-        
-        for (int i = 0; i < numberofcharacters; i++)
-        {
-            Console.WriteLine("Enter the name of character " + (i + 1) + ":");
-            characters[i] = ReadNonEmptyString();
-        }
-        fictionBook.SetFictionCharacters(characters);
-    }
 
-    public void AddNonFictionBook(NonFictionBook nonFictionBook)
-    {
-        Console.WriteLine("You selected NonFiction book.\n");
-
-        Console.WriteLine("Please enter the Field of Study:");
-        string field = ReadNonEmptyString();
-        nonFictionBook.feildstudy = field;
-
-        Console.WriteLine("Please enter the Edition Number:");
-        int editionNumber = checkinput();
-        nonFictionBook.editionnum = editionNumber;
-
-        Console.WriteLine("How many references are in the book?");
-        int numberofreferences = checkinput();
-        string[] references = new string[numberofreferences];
-
-        for (int i = 0; i < numberofreferences; i++)
-        {
-            Console.WriteLine("Enter the name of reference " + (i + 1) + ":");
-            references[i] = ReadNonEmptyString();
-        }
-        nonFictionBook.SetReferences(references);
-    }
-   public void DisplayBookDetails()
-{
-    if (CurrentBookCount == 0)
-    {
-        Console.WriteLine("there are no books in the Library\n");
-        return;
-    }
-
-    Console.WriteLine("enter the book Name");
-    string searchbookname = ReadNonEmptyString();
-
-    Book foundBook = null;
-
-    for (int i = 0; i < CurrentBookCount; i++)
-    {
-        if (books[i].title.Equals(searchbookname, StringComparison.OrdinalIgnoreCase))
-
-        {
-            foundBook = books[i];
-            Console.WriteLine(foundBook); // print ToString
-            break;
-        }
-    }
-
-    if (foundBook == null)
-    {
-        Console.WriteLine("Unavailable Book");
-        return;
-    }
-
-    // Print type-specific details using the actual foundBook instance
-    if (foundBook is FictionBook fBook)
-    {
-        Console.WriteLine("Target Audience: " + fBook._TargetAudience);
-        string[] characters = fBook.GetFictionCharacters();
-        for (int j = 0; j < characters.Length; j++)
-        {
-            Console.WriteLine($"Character {j + 1}: {characters[j]}");
-        }
-    }
-    else if (foundBook is NonFictionBook nfBook)
-    {
-        Console.WriteLine("Field of Study: " + nfBook.feildstudy);
-        Console.WriteLine("Edition Number: " + nfBook.editionnum);
-        string[] references = nfBook.GetReferences();
-        for (int j = 0; j < references.Length; j++)
-        {
-            Console.WriteLine($"Reference {j + 1}: {references[j]}");
-        }
-    }
-
-    // Authors section
-    Console.WriteLine("\nAuthors Information:");
-    Author[] bookAuthors = foundBook.GetAuthors();
-
-    if (bookAuthors == null || bookAuthors.Length == 0)
-    {
-        Console.WriteLine("No authors registered for this book.");
-        return;
-    }
-
-    for (int j = 0; j < bookAuthors.Length; j++)
-    {
-        Console.WriteLine(bookAuthors[j]);
-
-        if (bookAuthors[j] is Novelistauthor novelist)
-        {
-            Console.WriteLine("Writing Style: " + novelist._WritingStyle);
-            string[] awards = novelist.GetAwards();
-            for (int k = 0; k < awards.Length; k++)
+            for (int j = 0; j < bookAuthors.Length; j++)
             {
-                Console.WriteLine($"Award {k + 1}: {awards[k]}");
+                Console.WriteLine(bookAuthors[j]);
+
+                if (bookAuthors[j] is Novelistauthor novelist)
+                {
+                    Console.WriteLine("Writing Style: " + novelist._WritingStyle);
+                    string[] awards = novelist.GetAwards();
+                    for (int k = 0; k < awards.Length; k++)
+                    {
+                        Console.WriteLine($"Award {k + 1}: {awards[k]}");
+                    }
+                }
+                else if (bookAuthors[j] is PoetAuthor poet)
+                {
+                    Console.WriteLine("Poetry Style: " + poet._PoetryStyle);
+                    string[] poems = poet.GetPoems();
+                    for (int k = 0; k < poems.Length; k++)
+                    {
+                        Console.WriteLine($"Poem {k + 1}: {poems[k]}");
+                    }
+                }
             }
         }
-        else if (bookAuthors[j] is PoetAuthor poet)
+
+        public void SearchBookByAuthor()
         {
-            Console.WriteLine("Poetry Style: " + poet._PoetryStyle);
-            string[] poems = poet.GetPoems();
-            for (int k = 0; k < poems.Length; k++)
+            if (CurrentAuthorCount == 0)
             {
-                Console.WriteLine($"Poem {k + 1}: {poems[k]}");
+                Console.WriteLine("There are no authors in the library.");
+                return;
             }
-        }
-    }
-}
 
-   public void SearchBookByAuthor()
-{
-    if (CurrentAuthorCount == 0)
-    {
-        Console.WriteLine("There are no authors in the library.");
-        return;
-    }
+            Console.WriteLine("Please Enter Author Name:");
+            string authorsearch = ReadNonEmptyString();
 
-    Console.WriteLine("Please Enter Author Name:");
-    string authorsearch = ReadNonEmptyString();
+            Author foundAuthor = null;
 
-    Author foundAuthor = null;
-
-    // البحث عن الكاتب
-    for (int i = 0; i < CurrentAuthorCount; i++)
-    {
-        if (Authors[i].name.Equals(authorsearch, StringComparison.OrdinalIgnoreCase))
-        {
-            foundAuthor = Authors[i];
-            break;
-        }
-    }
-
-    if (foundAuthor == null)
-    {
-        Console.WriteLine("Unavailable Author");
-        return;
-    }
-
-    // عرض أسماء الكتب فقط
-    Book[] booksByAuthor = foundAuthor.GetBooksWritten();
-
-    if (booksByAuthor.Length == 0)
-    {
-        Console.WriteLine("This author has not written any books yet.");
-        return;
-    }
-
-    Console.WriteLine("\nBooks written by " + foundAuthor.name + ":");
-
-    for (int i = 0; i < booksByAuthor.Length; i++)
-    {
-        Console.WriteLine("- " + booksByAuthor[i].title);
-    }
-}
-}
-
-internal class LibraryManagementSystem
-{
-    static void Main(string[] args)
-    {
-        Library library = new Library();
-        string option;
-        
-        while (true)
-        {
-            Console.WriteLine("\n=================================");
-            Console.WriteLine("WELCOME TO LOST LIBRARY");
-            Console.WriteLine("=================================");
-            Console.WriteLine("1. Add Books");
-            Console.WriteLine("2. Display a Book details");
-            Console.WriteLine("3. Search a Book by Author");
-            Console.WriteLine("4. Exit");
-            Console.Write("please select an option (1-4): ");
-
-            option = Console.ReadLine();
-            
-            switch (option)
+            // البحث عن الكاتب
+            for (int i = 0; i < CurrentAuthorCount; i++)
             {
-                case "1":
-                    Console.WriteLine("\n* Adding a Book *");
-                    library.addbook();
-                    Console.WriteLine("Book added successfully!\n");
+                if (Authors[i].name.Equals(authorsearch, StringComparison.OrdinalIgnoreCase))
+                {
+                    foundAuthor = Authors[i];
                     break;
+                }
+            }
 
-                case "2":
-                    Console.WriteLine("\n* Display book details *");
-                    library.DisplayBookDetails();
-                    break;
+            if (foundAuthor == null)
+            {
+                Console.WriteLine("Unavailable Author");
+                return;
+            }
 
-                case "3":
-                    Console.WriteLine("\n* Search Book by Author *");
-                    library.SearchBookByAuthor();
-                    break;
+            // عرض أسماء الكتب فقط
+            Book[] booksByAuthor = foundAuthor.GetBooksWritten();
 
-                case "4":
-                    Console.WriteLine("Exiting the system. Goodbye!");
-                    return;
+            if (booksByAuthor.Length == 0)
+            {
+                Console.WriteLine("This author has not written any books yet.");
+                return;
+            }
 
-                default:
-                    Console.WriteLine("Invalid choice. Please try again.\n");
-                    break;
+            Console.WriteLine("\nBooks written by " + foundAuthor.name + ":");
+
+            for (int i = 0; i < booksByAuthor.Length; i++)
+            {
+                Console.WriteLine("- " + booksByAuthor[i].title);
             }
         }
     }
+        internal class Book //base class
+        {
+            public string title { get; set; }
+            public string genre { get; set; }
+            private int publicationyear; //نتاكد من البيانات الل دخلها المستخدم صحيحه ولا لا => validation  
+            private string ISBN; //validation
+            private int volumeNum; //validation
+            private Author[] AuthorsForBook; // many to many  المصفوفه ال بتخزن كل المؤلفين الل شاركو في الكتاب
+
+            //   Constructor بدون parameters و constructor آخر مبسط
+            public Book()  //بيمنع nullrefrenceexception
+            {
+                AuthorsForBook = new Author[0];
+            }
+
+            // public Book(string title, string author) 
+            // {
+            //     this.title = title;
+            //     this.author = author;
+            // }
+
+            public Book(string title, int year, string isbn, int volume, string genre)
+            {
+                this.title = title;
+
+                this._publicationyear = year;
+                this._ISBN = isbn;
+                this._volumeNum = volume;
+                this.genre = genre;
+
+                // مهم جدًا عشان AddAuthorsToBook ما تعملش Error
+                AuthorsForBook = new Author[0];
+            }
+
+
+            public int _publicationyear
+            {
+                set
+                {
+                    if (value <= 0 || value > 2025)
+                    { throw new ArgumentException("incorrect year"); }
+                    else
+                    { publicationyear = value; }
+                }
+                get { return publicationyear; }
+            }
+
+            public string _ISBN
+            {
+                set
+                {
+                    if (publicationyear <= 2007 && value.Length == 10)
+                    {
+                        ISBN = value;
+                    }
+                    else if (publicationyear > 2007 && value.Length == 13)
+                    {
+                        ISBN = value;
+                    }
+                    else
+                    {
+                        throw new ArgumentException("ISBN consists of 10 numbers(before 2007) or 13 numbers(after 2007)");
+                    }
+                }
+                get { return ISBN; }
+            }
+
+            public int _volumeNum
+            {
+                set
+                {
+                    if (value <= 0 || value > 10000)
+                    { throw new ArgumentException("incorrect or overloaded volume"); }
+                    else
+                    { volumeNum = value; }
+                }
+                get { return volumeNum; }
+            }
+            public override string ToString() // بتحدد شكل الطباعه لما تعمل cw book 
+            { return $"The Book Title={title} \nBook Genre={genre}\nPublication year={publicationyear} \nISBN for Book={ISBN} \nVolume of the Book={volumeNum}"; }
+
+            public bool AddAuthorsToBook(Author author) // الداله دي مبدئيا بترجعلي ب true or false 
+            {
+                // التأكد أن الكاتب مش موجود بالفعل
+                foreach (var a in AuthorsForBook)
+                {
+                    if (a.name.Equals(author.name, StringComparison.OrdinalIgnoreCase))
+                        return false; // لو موجود، ما نضيفش تاني ونرجع false
+                }
+
+                Author[] newArray = new Author[AuthorsForBook.Length + 1];
+
+                for (int i = 0; i < AuthorsForBook.Length; i++)
+                {
+                    newArray[i] = AuthorsForBook[i];
+                }
+
+                newArray[newArray.Length - 1] = author;
+
+                AuthorsForBook = newArray;
+                return true;
+            }
+            public Author[] GetAuthors()
+            {
+                return AuthorsForBook;
+            }
+            public bool IsSameBook(string otherTitle)
+            {
+                return title.Equals(otherTitle, StringComparison.OrdinalIgnoreCase);
+            }
+
+        }
+
+     internal class FictionBook : Book
+    {
+        private string[] Characters;
+        private string TargetAudience;
+
+        //  Constructor يستدعي base constructor
+        public FictionBook() : base()
+        {
+            Characters = new string[0];
+            TargetAudience = "General";
+        }
+
+        //  Constructor إضافي مع parameters
+        public FictionBook(string title, int year, string isbn, int volume)
+            : base(title, year, isbn, volume, "Fiction")
+        {
+            Characters = new string[0];
+            TargetAudience = "General";
+        }
+
+        public string _TargetAudience
+        {
+            set
+            {
+                if (value == "young" || value == "adult" || value == "old")
+                { TargetAudience = value; }
+                else { throw new ArgumentException("unvalid option"); }
+            }
+            get { return TargetAudience; }
+        }
+
+        public void SetFictionCharacters(string[] characters)
+        {
+            this.Characters = characters;
+        }
+
+        public string[] GetFictionCharacters()
+        {
+            return Characters;
+        }
+    }
+
+    internal class NonFictionBook : Book
+    {
+        private string FeildStudy;
+        private string[] References;
+        private int EditionNumber;
+
+        //  Constructor يستدعي base constructor
+        public NonFictionBook() : base()
+        {
+            FeildStudy = "General";
+            References = new string[0];
+            EditionNumber = 0;
+        }
+
+        //  Constructor إضافي مع parameters
+        public NonFictionBook(string title, int year, string isbn, int volume)
+            : base(title, year, isbn, volume, "NonFiction")
+        {
+            FeildStudy = "General";
+            References = new string[0];
+            EditionNumber = 0;
+        }
+
+        public string feildstudy { get { return FeildStudy; } set { FeildStudy = value; } }
+        public int editionnum { get { return EditionNumber; } set { EditionNumber = value; } }
+
+        public void SetReferences(string[] references)
+        {
+            this.References = references;
+        }
+
+        public string[] GetReferences()
+        {
+            return References;
+        }
+    }
+    internal class Author
+    {
+        //  تم إضافة default constructor
+        public Author()
+        {
+            BooksWritten = new Book[0]; //  تهيئة المصفوفة
+        }
+
+        public Author(string name, int birthdate)
+        {
+            this.name = name;
+            this.birthdate =birthdate;
+            BooksWritten = new Book[0]; //  تهيئة المصفوفة
+        }
+
+        //  Constructor إضافي
+        public Author(string name, int birthdate, Book[] books)
+        {
+            this.name = name;
+            this.birthdate = birthdate;
+            this.BooksWritten = books;
+        }
+        Book[] BooksWritten; // الطرف التاني من ال many to many
+
+        public string name { get; set; }
+        public int birthdate { get; set; }
+        public Book[] GetBooksWritten()
+        {
+            return BooksWritten;
+        }
+
+        public override string ToString()
+        {
+            return $"Author Name is: {name} \nAuthor Birthdate: {birthdate}";
+        }
+
+        public void AddBook(Book b)
+        {
+            //  نتأكد إن الكتاب مش موجود قبل كده
+            for (int i = 0; i < BooksWritten.Length; i++)
+            {
+                if (BooksWritten[i] == b)
+                {
+                    return; // الكتاب موجود بالفعل → ما نضيفش تاني
+                }
+            }
+
+            //  لو مش موجود، نعمل Array جديدة ونضيفه
+            Book[] newArray = new Book[BooksWritten.Length + 1];
+
+            for (int i = 0; i < BooksWritten.Length; i++)
+            {
+                newArray[i] = BooksWritten[i];
+            }
+
+            newArray[newArray.Length - 1] = b;
+
+            BooksWritten = newArray;
+        }
+    }
+
+    internal class Novelistauthor : Author
+    {
+        private string[] Awards;
+        private string WritingStyle;
+
+        //  Constructor يستدعي base constructor
+        // public Novelistauthor() : base()
+        // {
+        //     WritingStyle = "General";
+        //     Awards = new string[0];
+        // }
+
+        //  Constructor إضافي مع parameters
+        public Novelistauthor(string name, int birthdate) : base(name, birthdate)
+        {
+            WritingStyle = "General";
+            Awards = new string[0];
+        }
+
+        public void SetAwards(string[] awards)
+        {
+            this.Awards = awards;
+        }
+
+        public string[] GetAwards()
+        {
+            return Awards;
+        }
+
+        public string _WritingStyle
+        {
+            get { return WritingStyle; }
+            set { WritingStyle = value; }
+        }
+    }
+
+    internal class PoetAuthor : Author
+    {
+        private string[] Poems;
+        private string PoetryStyle;
+
+        //  Constructor يستدعي base constructor
+        // public PoetAuthor() : base()
+        // {
+        //     PoetryStyle = "General";
+        //     Poems = new string[0];
+        // }
+        //  Constructor إضافي مع parameters
+        public PoetAuthor(string name, int birthdate) : base(name, birthdate)
+        {
+            PoetryStyle = "General";
+            Poems = new string[0];
+        }
+
+        public void SetPoems(string[] poems)
+        {
+            this.Poems = poems;
+        }
+
+        public string[] GetPoems()
+        {
+            return Poems;
+        }
+
+        public string _PoetryStyle
+        {
+            set { PoetryStyle = value; }
+            get { return PoetryStyle; }
+        }
+    }
+
 }
